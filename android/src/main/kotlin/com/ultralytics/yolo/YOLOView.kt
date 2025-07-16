@@ -101,38 +101,35 @@ class YOLOView @JvmOverloads constructor(
         )
 
         private val kptColorIndices = intArrayOf(
-            16,16,16,16,16,
-            9, 9, 9, 9, 9, 9,
-            0, 0, 0, 0, 0, 0
+            9, 9, 9, 9, 9, 9, // hips down
+            0, 0, 0, 0, 0, 0, // arms and shoulders
+            16, 16 // neck and head
         )
 
         private val limbColorIndices = intArrayOf(
-            0, 0, 0, 0,
-            7, 7, 7,
-            9, 9, 9, 9, 9,
-            16,16,16,16,16,16,16
+            9, 9, 9, 9, 9, 9, 9, // shoulders down
+            0, 0, 0, 0, // arms
+            16, 16, 16 // clavicles and neck
         )
 
         private val skeleton = arrayOf(
-            intArrayOf(16, 14),
-            intArrayOf(14, 12),
-            intArrayOf(17, 15),
-            intArrayOf(15, 13),
-            intArrayOf(12, 13),
-            intArrayOf(6, 12),
-            intArrayOf(7, 13),
-            intArrayOf(6, 7),
-            intArrayOf(6, 8),
-            intArrayOf(7, 9),
-            intArrayOf(8, 10),
-            intArrayOf(9, 11),
-            intArrayOf(2, 3),
+            // legs and hips
             intArrayOf(1, 2),
-            intArrayOf(1, 3),
-            intArrayOf(2, 4),
-            intArrayOf(3, 5),
-            intArrayOf(4, 6),
-            intArrayOf(5, 7)
+            intArrayOf(2, 3),
+            intArrayOf(3, 4),
+            intArrayOf(4, 5),
+            intArrayOf(5, 6),
+            intArrayOf(4, 10),
+            intArrayOf(3, 9),
+            // arms
+            intArrayOf(10, 11),
+            intArrayOf(11, 12),
+            intArrayOf(9, 8),
+            intArrayOf(8, 7),
+            // head
+            intArrayOf(9, 13),
+            intArrayOf(10, 13),
+            intArrayOf(13, 14)
         )
     }
 
@@ -906,43 +903,10 @@ class YOLOView @JvmOverloads constructor(
                         val pad = 8f
 
                         val labelBoxHeight = textHeight + 2 * pad
-                        val labelBoxWidth = textWidth + 2 * pad
-                        
-                        // Calculate initial label position (above the box)
-                        var labelLeft = left
-                        var labelTop = top - labelBoxHeight
-                        var labelRight = labelLeft + labelBoxWidth
-                        var labelBottom = top
-                        
-                        // Check top boundary
-                        if (labelTop < 0) {
-                            // Place label inside the top of the box
-                            labelTop = top
-                            labelBottom = labelTop + labelBoxHeight
-                        }
-                        
-                        // Check left boundary
-                        if (labelLeft < 0) {
-                            labelLeft = 0f
-                            labelRight = labelBoxWidth
-                        }
-                        
-                        // Check right boundary
-                        if (labelRight > vw) {
-                            labelRight = vw.toFloat()
-                            labelLeft = labelRight - labelBoxWidth
-                            // If label is still too wide, align it with the right edge of the box
-                            if (labelLeft < 0) {
-                                labelLeft = maxOf(0f, right - labelBoxWidth)
-                            }
-                        }
-                        
-                        // Check bottom boundary (in case label was moved inside the box)
-                        if (labelBottom > vh) {
-                            labelBottom = vh.toFloat()
-                            labelTop = labelBottom - labelBoxHeight
-                        }
-                        
+                        val labelBottom = top
+                        val labelTop = labelBottom - labelBoxHeight
+                        val labelLeft = left
+                        val labelRight = left + textWidth + 2 * pad
                         val bgRect = RectF(labelLeft, labelTop, labelRight, labelBottom)
 
                         paint.style = Paint.Style.FILL
@@ -1053,65 +1017,6 @@ class YOLOView @JvmOverloads constructor(
                             BOX_CORNER_RADIUS, BOX_CORNER_RADIUS,
                             paint
                         )
-                        
-                        // Add label
-                        val labelText = "${box.cls} ${"%.1f".format(box.conf * 100)}%"
-                        paint.textSize = 40f
-                        val fm = paint.fontMetrics
-                        val textWidth = paint.measureText(labelText)
-                        val textHeight = fm.bottom - fm.top
-                        val pad = 8f
-                        
-                        val labelBoxHeight = textHeight + 2 * pad
-                        val labelBoxWidth = textWidth + 2 * pad
-                        
-                        // Calculate initial label position (above the box)
-                        var labelLeft = left
-                        var labelTop = top - labelBoxHeight
-                        var labelRight = labelLeft + labelBoxWidth
-                        var labelBottom = top
-                        
-                        // Check top boundary
-                        if (labelTop < 0) {
-                            // Place label inside the top of the box
-                            labelTop = top
-                            labelBottom = labelTop + labelBoxHeight
-                        }
-                        
-                        // Check left boundary
-                        if (labelLeft < 0) {
-                            labelLeft = 0f
-                            labelRight = labelBoxWidth
-                        }
-                        
-                        // Check right boundary
-                        if (labelRight > vw) {
-                            labelRight = vw.toFloat()
-                            labelLeft = labelRight - labelBoxWidth
-                            // If label is still too wide, align it with the right edge of the box
-                            if (labelLeft < 0) {
-                                labelLeft = maxOf(0f, right - labelBoxWidth)
-                            }
-                        }
-                        
-                        // Check bottom boundary
-                        if (labelBottom > vh) {
-                            labelBottom = vh.toFloat()
-                            labelTop = labelBottom - labelBoxHeight
-                        }
-                        
-                        val bgRect = RectF(labelLeft, labelTop, labelRight, labelBottom)
-                        
-                        // Draw label background
-                        paint.style = Paint.Style.FILL
-                        paint.color = newColor
-                        canvas.drawRoundRect(bgRect, BOX_CORNER_RADIUS, BOX_CORNER_RADIUS, paint)
-                        
-                        // Draw label text
-                        paint.color = Color.WHITE
-                        val centerY = (labelTop + labelBottom) / 2
-                        val baseline = centerY - (fm.descent + fm.ascent) / 2
-                        canvas.drawText(labelText, labelLeft + pad, baseline, paint)
                     }
 
                     // Keypoints & skeleton
@@ -1219,49 +1124,12 @@ class YOLOView @JvmOverloads constructor(
                             val padding = 10f
                             val cornerRadius = 8f
 
-                            // Find bounding box of the OBB polygon
-                            val minX = polygon.map { it.x }.minOrNull() ?: 0f
-                            val maxX = polygon.map { it.x }.maxOrNull() ?: 0f
-                            val minY = polygon.map { it.y }.minOrNull() ?: 0f
-                            val maxY = polygon.map { it.y }.maxOrNull() ?: 0f
-                            
+                            // Display background rectangle near polygon[0]
                             val labelBoxHeight = textHeight + 2 * padding
-                            val labelBoxWidth = textWidth + 2 * padding
-                            
-                            // Calculate initial label position (above the OBB)
-                            var labelLeft = minX
-                            var labelTop = minY - labelBoxHeight
-                            var labelRight = labelLeft + labelBoxWidth
-                            var labelBottom = minY
-                            
-                            // Check top boundary
-                            if (labelTop < 0) {
-                                // Place label inside the top of the OBB
-                                labelTop = minY
-                                labelBottom = labelTop + labelBoxHeight
-                            }
-                            
-                            // Check left boundary
-                            if (labelLeft < 0) {
-                                labelLeft = 0f
-                                labelRight = labelBoxWidth
-                            }
-                            
-                            // Check right boundary
-                            if (labelRight > vw) {
-                                labelRight = vw.toFloat()
-                                labelLeft = labelRight - labelBoxWidth
-                                // If label is still too wide, align it with the OBB's right edge
-                                if (labelLeft < 0) {
-                                    labelLeft = maxOf(0f, maxX - labelBoxWidth)
-                                }
-                            }
-                            
-                            // Check bottom boundary
-                            if (labelBottom > vh) {
-                                labelBottom = vh.toFloat()
-                                labelTop = labelBottom - labelBoxHeight
-                            }
+                            val labelBottom = polygon[0].y
+                            val labelTop = labelBottom - labelBoxHeight
+                            val labelLeft = polygon[0].x
+                            val labelRight = labelLeft + textWidth + 2 * padding
 
                             val bgRect = RectF(labelLeft, labelTop, labelRight, labelBottom)
                             paint.style = Paint.Style.FILL
