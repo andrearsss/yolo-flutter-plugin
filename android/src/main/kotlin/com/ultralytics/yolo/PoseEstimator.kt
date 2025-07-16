@@ -38,8 +38,8 @@ class PoseEstimator(
 
     companion object {
         // xywh(4) + conf(1) + keypoints(17*3=51) = 56
-        private const val OUTPUT_FEATURES = 56
-        private const val KEYPOINTS_COUNT = 17
+        private const val OUTPUT_FEATURES = 47
+        private const val KEYPOINTS_COUNT = 14
         private const val KEYPOINTS_FEATURES = KEYPOINTS_COUNT * 3 // x, y, conf per keypoint
         private const val MAX_POOL_SIZE = 100 
         
