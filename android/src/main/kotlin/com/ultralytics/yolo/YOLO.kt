@@ -432,9 +432,9 @@ class YOLO(
 
                     // Define keypoint color indices (same as YoloView)
                     val kptColorIndices = intArrayOf(
-                        16,
-                        9, 9, 9, 9, 9, 9, 9,
-                        0, 0, 0, 0, 0, 0
+                        9, 9, 9, 9, 9, 9, // hips down
+                        0, 0, 0, 0, 0, 0, // arms and shoulders
+                        16, 16 // neck and head
                     )
                     
                     // Define pose palette for coloring
@@ -491,33 +491,30 @@ class YOLO(
                     
                     // Define skeleton connections (same as YoloView)
                     val skeleton = arrayOf(
-                        intArrayOf(16, 14),
-                        intArrayOf(14, 12),
-                        intArrayOf(17, 15),
-                        intArrayOf(15, 13),
-                        intArrayOf(12, 13),
-                        intArrayOf(6, 12),
-                        intArrayOf(7, 13),
-                        intArrayOf(6, 7),
-                        intArrayOf(6, 8),
-                        intArrayOf(7, 9),
-                        intArrayOf(8, 10),
-                        intArrayOf(9, 11),
-                        intArrayOf(2, 3),
+                        // legs and hips
                         intArrayOf(1, 2),
-                        intArrayOf(1, 3),
-                        intArrayOf(2, 4),
-                        intArrayOf(3, 5),
-                        intArrayOf(4, 6),
-                        intArrayOf(5, 7)
+                        intArrayOf(2, 3),
+                        intArrayOf(3, 4),
+                        intArrayOf(4, 5),
+                        intArrayOf(5, 6),
+                        intArrayOf(4, 10),
+                        intArrayOf(3, 9),
+                        // arms
+                        intArrayOf(10, 11),
+                        intArrayOf(11, 12),
+                        intArrayOf(9, 8),
+                        intArrayOf(8, 7),
+                        // head
+                        intArrayOf(9, 13),
+                        intArrayOf(10, 13),
+                        intArrayOf(13, 14)
                     )
                     
                     // Define color indices for limbs
                     val limbColorIndices = intArrayOf(
-                        0, 0, 0, 0,
-                        7, 7, 7,
-                        9, 9, 9, 9, 9,
-                        16, 16, 16, 16, 16, 16, 16
+                        9, 9, 9, 9, 9, 9, 9, // shoulders down
+                        0, 0, 0, 0, // arms
+                        16, 16, 16 // clavicles and neck
                     )
                     
                     // Draw skeleton connections
