@@ -228,7 +228,7 @@ class YOLOPlatformView(
                     val task = YOLOTask.valueOf(taskString.uppercase())
                     Log.d(TAG, "Received setModel call with modelPath: $modelPath, task: $task")
                     
-                    yoloView.setModel(modelPath, task) { success ->
+                    yoloView.setModel(modelPath, task, { success ->
                         if (success) {
                             Log.d(TAG, "Model switched successfully")
                             result.success(null)
@@ -236,7 +236,7 @@ class YOLOPlatformView(
                             Log.e(TAG, "Failed to switch model")
                             result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
                         }
-                    }
+                    }, null)
                 }
                 "captureFrame" -> {
                     Log.d(TAG, "Received captureFrame call")
@@ -446,9 +446,9 @@ class YOLOPlatformView(
          * @param task The YOLO task type
          * @param callback Callback to report success/failure
          */
-        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null) {
-            Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task")
-            yoloView.setModel(modelPath, task, callback)
+        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Exercise? = null,) {
+            Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task, exercise: $exercise")
+            yoloView.setModel(modelPath, task, callback, exercise)
         }
     
     /**

@@ -4,9 +4,7 @@ package com.ultralytics.yolo
 
 import android.graphics.PointF
 import android.graphics.RectF
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.*
 
 fun polygonIntersection(subject: List<PointF>, clip: List<PointF>): List<PointF> {
     var outputList = subject.toMutableList()
@@ -129,4 +127,31 @@ fun nonMaxSuppressionOBB(boxes: List<OBB>, scores: List<Float>, iouThreshold: Fl
         }
     }
     return selected
+}
+
+/**
+ * Calculates the angle at pointB formed by the three points A-B-C
+ * @return Angle in degrees
+ */
+fun calculateAngle(pointA: PointF, pointB: PointF, pointC: PointF): Float {
+    val baX = pointA.x - pointB.x
+    val baY = pointA.y - pointB.y
+
+    val bcX = pointC.x - pointB.x
+    val bcY = pointC.y - pointB.y
+
+    // dot product and magnitudes
+    val dotProduct = baX * bcX + baY * bcY
+    val magnitudeBA = sqrt(baX * baX + baY * baY)
+    val magnitudeBC = sqrt(bcX * bcX + bcY * bcY)
+    val cosineAngle = dotProduct / (magnitudeBA * magnitudeBC)
+
+    // avoid numerical errors
+    val clippedCosine = cosineAngle.coerceIn(-1.0f, 1.0f)
+
+    // Calculate angle in radians and convert to degrees
+    val angleRadians = acos(clippedCosine)
+    val angleDegrees = Math.toDegrees(angleRadians.toDouble()).toFloat()
+
+    return angleDegrees
 }

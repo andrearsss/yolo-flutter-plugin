@@ -402,11 +402,15 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
           val viewId = args?.get("viewId") as? Int
           val modelPath = args?.get("modelPath") as? String
           val taskString = args?.get("task") as? String
+          var exercise = args?.get("exercise") as? String
           
           if (viewId == null || modelPath == null || taskString == null) {
             result.error("bad_args", "Missing required arguments for setModel", null)
             return
           }
+
+          if (exercise == null)
+            exercise = Exercise.SQUAT.name
           
           // Get the YoloView instance from the factory
           val yoloView = viewFactory.activeViews[viewId]
@@ -414,17 +418,18 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
             // Resolve the model path
             val resolvedPath = resolveModelPath(modelPath)
             
-            // Convert task string to enum
+            // Convert strings to enums
             val task = YOLOTask.valueOf(taskString.uppercase())
+            val exercise = Exercise.valueOf(exercise.uppercase())
             
             // Call setModel on the YoloView
-            yoloView.setModel(resolvedPath, task) { success ->
-              if (success) {
-                result.success(null)
-              } else {
-                result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
-              }
-            }
+            yoloView.setModel(resolvedPath, task, { success ->
+                  if (success) {
+                      result.success(null)
+                  } else {
+                      result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
+                  }
+              }, exercise)
           } else {
             result.error("VIEW_NOT_FOUND", "YoloView with id $viewId not found", null)
           }
