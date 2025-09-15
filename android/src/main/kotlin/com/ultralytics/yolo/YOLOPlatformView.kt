@@ -343,7 +343,7 @@ class YOLOPlatformView(
                     modelPath = resolveModelPath(context, modelPath)
                     val task = YOLOTask.valueOf(taskString.uppercase())
                     
-                    yoloView.setModel(modelPath, task, useGpu) { success ->
+                    yoloView.setModel(modelPath, task, useGpu, { success ->
                         if (success) {
                             Log.d(TAG, "Model switched successfully")
                             result.success(null)
@@ -351,7 +351,7 @@ class YOLOPlatformView(
                             Log.e(TAG, "Failed to switch model")
                             result.error("MODEL_NOT_FOUND", "Failed to load model", null)
                         }
-                    }
+                    }, null)
                 }
                 "switchCamera" -> {
                     yoloView.switchCamera()
@@ -445,11 +445,24 @@ class YOLOPlatformView(
             Log.e(TAG, "Error during disposal", e)
         }
         
+<<<<<<< HEAD
         methodChannel?.setMethodCallHandler(null)
         factory.onPlatformViewDisposed(viewId)
         
         Log.d(TAG, "YOLOPlatformView disposed successfully")
     }
+=======
+        /**
+         * Sets a new model on the YoloView
+         * @param modelPath Path to the new model
+         * @param task The YOLO task type
+         * @param callback Callback to report success/failure
+         */
+        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Exercise? = null,) {
+            Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task, exercise: $exercise")
+            yoloView.setModel(modelPath, task, callback, exercise)
+        }
+>>>>>>> 9345c77 (added ExerciseAnalyzer, modified setModel to accept exercise as parameter)
     
     private fun resolveModelPath(context: Context, modelPath: String): String {
         return when {
