@@ -2,100 +2,87 @@ package com.ultralytics.yolo
 
 import kotlin.math.*
 import android.graphics.PointF
-import com.ultralytics.yolo.AngleState.*
-import com.ultralytics.yolo.Exercise.*
+import com.ultralytics.yolo.constants.*
 
-enum class Exercise {
-    SQUAT
-    //PULL_UP,
-    //PUSH_UP,
-    //DEADLIFT,
-    //BICEP_CURL
-}
-
-enum class AngleState {
-    NEUTRAL,
-    DEEP_BEND,
-    EXTENDED
-}
 
 object ExerciseAnalyzer {
     
-    // Static state variables
-    private var skipFrames = 0
-    private var currentExercise: Exercise? = null
-    private var repCount = 0
-    private var lastAngleState = NEUTRAL
+    private var skipFrames: Int = 0
+    private var currentExercise: Int = SQUAT
+    private var repCount: Int = 0
+    private var lastAngleState: Int = NEUTRAL
+
+    // Default skeleton colors
+    private var limbColorIndices: IntArray = intArrayOf(
+        BLUE_LIGHT, BLUE_LIGHT, BLUE_LIGHT, BLUE_LIGHT, BLUE_LIGHT, BLUE_LIGHT, BLUE_LIGHT, // shoulders down
+        ORANGE, ORANGE, ORANGE, ORANGE,                                                     // arms
+        GREEN, GREEN, GREEN                                                                 // clavicles and neck
+    )
     
     data class ExerciseResult(
         val angle: Float,
         val shouldSkipFrame: Boolean,
         val repDetected: Boolean,
         val repCount: Int,
-        val lastAngleState: AngleState
+        val limbColorIndices: IntArray,
     )
-    
-// Main calculation function for exercise analysis
-fun calculateExercise(exercise: Exercise, keypoints: List<PointF>): ExerciseResult {
-    currentExercise = exercise
 
-    // Skip some frames for stability
-    if (skipFrames > 0) {
-        skipFrames--
-        return ExerciseResult(0f, true, false, repCount, lastAngleState)
+    // Main function for exercise analysis
+    fun analyzeKeypoints(keypoints: Array<PointF?>, exercise: Int, fps: Int?): ExerciseResult {
+        // Skip frames for detection stability
+        if (skipFrames > 0) {
+            skipFrames--
+            return ExerciseResult(0f, true, false, repCount, limbColorIndices)
+        }
+        currentExercise = exercise
+        skipFrames = fps ?: 0 // 1 second
+        return when (exercise) {
+            SQUAT -> calculateSquat(keypoints)
+            else -> return ExerciseResult(0f, true, false, repCount, limbColorIndices)
+        }
     }
 
-    return when (exercise) {
-        Exercise.SQUAT -> calculateSquat(keypoints)
-    }
-}
-
-/**
- * Squat analysis: Hip-Knee-Ankle angle
- * Keypoints: 0=hip, 1=knee, 2=ankle
- */
-private fun calculateSquat(keypoints: List<PointF>): ExerciseResult {
-    if (keypoints.size < 3) {
-        return ExerciseResult(-1f, true, false, repCount, lastAngleState)
-    }
-
-    val hipKneeAnkleAngle = calculateAngle(keypoints[0], keypoints[1], keypoints[2])
-    var repDetected = false
-
-    when {
-        hipKneeAnkleAngle < 90f -> {
-            // Deep squat position
-            if (lastAngleState != DEEP_BEND) {
-                lastAngleState = DEEP_BEND
+    /*
+    * Squat analysis: Hip-Knee-Ankle angle
+    */
+    private fun calculateSquat(keypoints: Array<PointF?>): ExerciseResult {
+        if (keypoints.size < 3 || keypoints[LEFT_HIP] == null || keypoints[LEFT_KNEE] == null || keypoints[LEFT_ANKLE] == null) {
+            return ExerciseResult(-1f, true, false, repCount, limbColorIndices)
+        }
+        val hipKneeAnkleDegrees = calculateAngle(keypoints[LEFT_HIP]!!, keypoints[LEFT_KNEE]!!, keypoints[LEFT_ANKLE]!!)
+        val limb_id = 3 // limb to use as feedback
+        var repDetected = false
+        when {
+            hipKneeAnkleDegrees < 90f -> {
+                // Deep squat
+                if (lastAngleState != DEEP_BEND) {
+                    lastAngleState = DEEP_BEND
+                    limbColorIndices[limb_id] = GREEN
+                }
+            }
+            hipKneeAnkleDegrees >= 90 -> {
+                // Standing
+                if (lastAngleState == DEEP_BEND) {
+                    lastAngleState = EXTENDED
+                    limbColorIndices[limb_id] = RED
+                    repDetected = true
+                    repCount++
+                }
             }
         }
-        hipKneeAnkleAngle > 150f -> {
-            // Standing/extended position
-            if (lastAngleState == DEEP_BEND) {
-                repDetected = true
-                repCount++
-            }
-            lastAngleState = EXTENDED
-        }
-        else -> {
-            lastAngleState = NEUTRAL
-        }
+
+        return ExerciseResult(
+            hipKneeAnkleDegrees,
+            false,
+            repDetected,
+            repCount,
+            limbColorIndices
+        )
     }
-    skipFrames = 10 // Skip frames for stability
 
-    return ExerciseResult(
-        hipKneeAnkleAngle,
-        false,
-        repDetected,
-        repCount,
-        lastAngleState
-    )
-}
-
-    // Reset all static state variables
     fun reset() {
         skipFrames = 0
-        currentExercise = null
+        currentExercise = SQUAT
         repCount = 0
         lastAngleState = NEUTRAL
     }

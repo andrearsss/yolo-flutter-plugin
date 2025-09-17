@@ -58,6 +58,12 @@ class YOLOPlatformView(
         // Parse model path and task from creation params
         var modelPath = creationParams?.get("modelPath") as? String ?: "yolo11n"
         val taskString = creationParams?.get("task") as? String ?: "detect"
+<<<<<<< HEAD
+=======
+        val exercise = creationParams?.get("exercise") as? Int ?: 0
+        // These will use defaults if not in creationParams, which is expected
+        // as Dart side sets them via method channel after view creation.
+>>>>>>> 173ca48 (created package for constants, edited ExerciseAnalyzer)
         val confidenceParam = creationParams?.get("confidenceThreshold") as? Double ?: 0.5
         val iouParam = creationParams?.get("iouThreshold") as? Double ?: 0.45
 
@@ -351,7 +357,7 @@ class YOLOPlatformView(
                             Log.e(TAG, "Failed to switch model")
                             result.error("MODEL_NOT_FOUND", "Failed to load model", null)
                         }
-                    }, null)
+                    })
                 }
                 "switchCamera" -> {
                     yoloView.switchCamera()
@@ -458,7 +464,7 @@ class YOLOPlatformView(
          * @param task The YOLO task type
          * @param callback Callback to report success/failure
          */
-        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Exercise? = null,) {
+        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Int = 0) {
             Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task, exercise: $exercise")
             yoloView.setModel(modelPath, task, callback, exercise)
         }

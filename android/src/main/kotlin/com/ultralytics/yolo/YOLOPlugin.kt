@@ -405,7 +405,7 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
           val modelPath = args?.get("modelPath") as? String
           val taskString = args?.get("task") as? String
           val useGpu = args?.get("useGpu") as? Boolean ?: true
-          var exercise = args?.get("exercise") as? String
+          var exercise = args?.get("exercise") as? Int ?: 0
           
           if (viewId == null || modelPath == null || taskString == null) {
             result.error("bad_args", "Missing required arguments for setModel", null)
@@ -418,14 +418,15 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
           // Get the YOLOPlatformView instance from the factory
           val platformView = viewFactory.activeViews[viewId]
           if (platformView != null) {
+          // Get the YoloView instance from the factory
+          val yoloView = viewFactory.activeViews[viewId]
+          if (yoloView != null) {
             // Resolve the model path
             val resolvedPath = resolveModelPath(modelPath)
             
             // Convert strings to enums
             val task = YOLOTask.valueOf(taskString.uppercase())
-            val exercise = Exercise.valueOf(exercise.uppercase())
             
-<<<<<<< HEAD
             // Call setModel on the YOLOView inside the platform view
             platformView.yoloViewInstance.setModel(resolvedPath, task, useGpu) { success ->
               if (success) {
@@ -434,16 +435,14 @@ class YOLOPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler
                 result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
               }
             }
-=======
             // Call setModel on the YoloView
-            yoloView.setModel(resolvedPath, task, { success ->
+            yoloView.setModel(resolvedPath, task, useGpu, { success ->
                   if (success) {
                       result.success(null)
                   } else {
                       result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
                   }
               }, exercise)
->>>>>>> 9345c77 (added ExerciseAnalyzer, modified setModel to accept exercise as parameter)
           } else {
             result.error("VIEW_NOT_FOUND", "YOLOPlatformView with id $viewId not found", null)
           }
