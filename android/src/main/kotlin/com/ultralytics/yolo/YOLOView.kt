@@ -26,30 +26,15 @@ import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.Executors
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import android.widget.TextView
 import android.view.Gravity
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import android.content.res.Configuration
-import com.ultralytics.yolo.BodyJoint.*
-import com.ultralytics.yolo.AngleState.*
+import com.ultralytics.yolo.constants.*
 
-enum class BodyJoint {
-    RIGHT_ANKLE,
-    RIGHT_KNEE,
-    RIGHT_HIP,
-    LEFT_HIP,
-    LEFT_KNEE,
-    LEFT_ANKLE,
-    RIGHT_WRIST,
-    RIGHT_ELBOW,
-    RIGHT_SHOULDER,
-    LEFT_SHOULDER,
-    LEFT_ELBOW,
-    LEFT_WRIST,
-    NECK,
-    HEAD_TOP
-}
+
 
 class YOLOView @JvmOverloads constructor(
     context: Context,
@@ -95,61 +80,7 @@ class YOLOView @JvmOverloads constructor(
             Color.argb(153, 162, 255, 11)
         )
 
-        // Pose
-        private val posePalette = arrayOf(
-            floatArrayOf(255f, 128f,  0f),
-            floatArrayOf(255f, 153f,  51f),
-            floatArrayOf(255f, 178f, 102f),
-            floatArrayOf(230f, 230f,   0f),
-            floatArrayOf(255f, 153f, 255f),
-            floatArrayOf(153f, 204f, 255f),
-            floatArrayOf(255f, 102f, 255f),
-            floatArrayOf(255f,  51f, 255f),
-            floatArrayOf(102f, 178f, 255f),
-            floatArrayOf( 51f, 153f, 255f),
-            floatArrayOf(255f, 153f, 153f),
-            floatArrayOf(255f, 102f, 102f),
-            floatArrayOf(255f,  51f,  51f),
-            floatArrayOf(153f, 255f, 153f),
-            floatArrayOf(102f, 255f, 102f),
-            floatArrayOf( 51f, 255f,  51f),
-            floatArrayOf(  0f, 255f,   0f),
-            floatArrayOf(  0f,   0f, 255f),
-            floatArrayOf(255f,   0f,   0f),
-            floatArrayOf(255f, 255f, 255f),
-        )
-
-        private val kptColorIndices = intArrayOf(
-            9, 9, 9, 9, 9, 9, // hips down
-            0, 0, 0, 0, 0, 0, // arms and shoulders
-            16, 16 // neck and head
-        )
-
-        private val limbColorIndices = intArrayOf(
-            9, 9, 9, 9, 9, 9, 9, // shoulders down
-            0, 0, 0, 0, // arms
-            16, 16, 16 // clavicles and neck
-        )
-
-        private val skeleton = arrayOf(
-            // legs and hips
-            Pair(RIGHT_ANKLE, RIGHT_KNEE),
-            Pair(RIGHT_KNEE, RIGHT_HIP),
-            Pair(RIGHT_HIP, LEFT_HIP),
-            Pair(LEFT_HIP, LEFT_KNEE),
-            Pair(LEFT_KNEE, LEFT_ANKLE),
-            Pair(LEFT_HIP, LEFT_SHOULDER),
-            Pair(RIGHT_HIP, RIGHT_SHOULDER),
-            // arms
-            Pair(LEFT_SHOULDER, LEFT_ELBOW),
-            Pair(LEFT_ELBOW, LEFT_WRIST),
-            Pair(RIGHT_SHOULDER, RIGHT_ELBOW),
-            Pair(RIGHT_ELBOW, RIGHT_WRIST),
-            // head
-            Pair(RIGHT_SHOULDER, NECK),
-            Pair(LEFT_SHOULDER, NECK),
-            Pair(NECK, HEAD_TOP)
-        )
+        
     }
 
     // Callback to notify inference results externally
@@ -215,7 +146,7 @@ class YOLOView @JvmOverloads constructor(
     private var predictor: Predictor? = null
     private var task: YOLOTask = YOLOTask.DETECT
     private var modelName: String = "Model"
-    private var exercise: Exercise = Exercise.SQUAT
+    private var exercise: Int = SQUAT
 
     // Camera config
     private var lensFacing = CameraSelector.LENS_FACING_BACK
@@ -344,11 +275,11 @@ class YOLOView @JvmOverloads constructor(
 
     // region Model / Task
 
-    fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Exercise? = null) {
+    fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Int = 0) {
         // Check if task is the same
             if (this.task == task) {
-                // If only the exercise is being updated, do it on the main thread and exit
-                if (exercise != null) {
+                // Check if exercise is changed and set it
+                if (exercise != this.exercise) {
                     post {
                         this.exercise = exercise
                         callback?.invoke(true)
@@ -357,6 +288,7 @@ class YOLOView @JvmOverloads constructor(
                 return
             }
         
+        // Set task
         Executors.newSingleThreadExecutor().execute {
             try {
                 val newPredictor = when (task) {
@@ -373,9 +305,7 @@ class YOLOView @JvmOverloads constructor(
 
                 post {
                     this.task = task
-                    if (exercise != null) {
-                        this.exercise = exercise
-                    }
+                    this.exercise = exercise
                     this.predictor = newPredictor
                     this.modelName = modelPath.substringAfterLast("/")
                     modelLoadCallback?.invoke(true)
@@ -990,7 +920,7 @@ class YOLOView @JvmOverloads constructor(
 
                     // Keypoints & skeleton
                     for (person in result.keypointsList) {
-                        val points = arrayOfNulls<PointF>(person.xyn.size)
+                        val keypoints = arrayOfNulls<PointF>(person.xyn.size)
                         for (i in person.xyn.indices) {
                             val kp = person.xyn[i]
                             val conf = person.conf[i]
@@ -1016,41 +946,22 @@ class YOLOView @JvmOverloads constructor(
                                 paint.style = Paint.Style.FILL
                                 canvas.drawCircle(px, py, 8f, paint)
 
-                                points[i] = PointF(px, py)
+                                keypoints[i] = PointF(px, py)
                             }
                         }
 
-                        // Skeleton connection
+                        // Keypoints processing and skeleton drawing
                         paint.style = Paint.Style.STROKE
                         paint.strokeWidth = KEYPOINT_LINE_WIDTH
-                        for ((idx, bone) in skeleton.withIndex()) {
-                            var rgbArray: FloatArray = posePalette[0] // Orange
-                            val joint1 = bone.first
-                            val joint2 = bone.second
-                            val p1 = points.getOrNull(joint1.ordinal)
-                            val p2 = points.getOrNull(joint2.ordinal)
-                            if (p1 != null && p2 != null) {
-                                when (exercise) {
-                                    Exercise.SQUAT -> { // left side of the body
+                        var rgbArray: FloatArray = posePalette[ORANGE] // default
 
-                                        // todo: edit limbColorIndices after angle calculations
-                                        if (joint1 == LEFT_HIP && joint2 == LEFT_KNEE) {
-                                            val p3 = points.getOrNull(LEFT_ANKLE.ordinal)
-                                            if (p3 != null) {
-                                                val exRes = ExerciseAnalyzer.calculateExercise(exercise, listOf(p1, p2, p3))
-                                                if (exRes.shouldSkipFrame == false) {
-                                                    if (exRes.lastAngleState == DEEP_BEND)
-                                                        rgbArray = posePalette[16 % posePalette.size] // Green
-                                                    else
-                                                        rgbArray = posePalette[18 % posePalette.size] // Red
-                                                }
-                                            }
-                                        } else {
-                                            val limbColorIdx = if (idx < limbColorIndices.size) limbColorIndices[idx] else 0
-                                            rgbArray = posePalette[limbColorIdx % posePalette.size]
-                                        }
-                                    }
-                                }
+                        val exRes = ExerciseAnalyzer.analyzeKeypoints(keypoints, exercise, result.fps?.roundToInt())
+                        for ((limbId, color) in exRes.limbColorIndices.withIndex()) {
+                            // get coordinates
+                            val p1 = keypoints.getOrNull(skeleton[limbId].first)
+                            val p2 = keypoints.getOrNull(skeleton[limbId].second)
+                            if (p1 != null && p2 != null) {
+                                rgbArray = posePalette[color]
                                 paint.color = Color.argb(
                                     255,
                                     rgbArray[0].toInt().coerceIn(0,255),

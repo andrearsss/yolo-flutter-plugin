@@ -42,6 +42,7 @@ class YOLOPlatformView(
         // Parse model path and task from creation params
         var modelPath = creationParams?.get("modelPath") as? String ?: "yolo11n"
         val taskString = creationParams?.get("task") as? String ?: "detect"
+        val exercise = creationParams?.get("exercise") as? Int ?: 0
         // These will use defaults if not in creationParams, which is expected
         // as Dart side sets them via method channel after view creation.
         val confidenceParam = creationParams?.get("confidenceThreshold") as? Double ?: 0.5
@@ -228,7 +229,7 @@ class YOLOPlatformView(
                     val task = YOLOTask.valueOf(taskString.uppercase())
                     Log.d(TAG, "Received setModel call with modelPath: $modelPath, task: $task")
                     
-                    yoloView.setModel(modelPath, task, { success ->
+                    yoloView.setModel(modelPath, task, callback = { success ->
                         if (success) {
                             Log.d(TAG, "Model switched successfully")
                             result.success(null)
@@ -236,7 +237,7 @@ class YOLOPlatformView(
                             Log.e(TAG, "Failed to switch model")
                             result.error("MODEL_NOT_FOUND", "Failed to load model: $modelPath", null)
                         }
-                    }, null)
+                    })
                 }
                 "captureFrame" -> {
                     Log.d(TAG, "Received captureFrame call")
@@ -446,7 +447,7 @@ class YOLOPlatformView(
          * @param task The YOLO task type
          * @param callback Callback to report success/failure
          */
-        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Exercise? = null,) {
+        fun setModel(modelPath: String, task: YOLOTask, callback: ((Boolean) -> Unit)? = null, exercise: Int = 0) {
             Log.d(TAG, "setModel called for viewId $viewId with model: $modelPath, task: $task, exercise: $exercise")
             yoloView.setModel(modelPath, task, callback, exercise)
         }
