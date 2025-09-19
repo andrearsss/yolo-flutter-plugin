@@ -104,8 +104,17 @@ const val PUSH_UP = 2
 const val DEADLIFT = 3
 const val BICEP_CURL = 4
 
-// Angle states
+// Repetition states
 const val NEUTRAL = 0
 const val DEEP_BEND = 1
 const val EXTENDED = 2
+
+
+// Squat states
+const val KNEE_TOO_CLOSE_TO_VERTICAL = 1
+const val KNEE_TOO_FAR_FROM_VERTICAL = 2
+const val KNEE_TOO_FLEXED = 3
+const val KNEE_NOT_FLEXED_ENOUGH = 4
+const val BACK_TOO_UPRIGHT = 5
+const val BACK_TOO_BENT = 6
 
