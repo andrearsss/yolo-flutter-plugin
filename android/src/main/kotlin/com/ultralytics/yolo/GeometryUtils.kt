@@ -130,24 +130,42 @@ fun nonMaxSuppressionOBB(boxes: List<OBB>, scores: List<Float>, iouThreshold: Fl
 }
 
 /**
- * Calculates the angle at pointB formed by the three points A-B-C
- * @return Angle in degrees
+ * Computes the angle in degrees at vertex B formed by A-B-C.
+ * Range: [0°, 180°].
  */
-fun calculateAngle(pointA: PointF, pointB: PointF, pointC: PointF): Float {
-    val baX = pointA.x - pointB.x
-    val baY = pointA.y - pointB.y
-    val bcX = pointC.x - pointB.x
-    val bcY = pointC.y - pointB.y
-    // dot product and magnitudes
-    val dotProduct = baX * bcX + baY * bcY
-    val magnitudeBA = sqrt(baX * baX + baY * baY)
-    val magnitudeBC = sqrt(bcX * bcX + bcY * bcY)
-    
-    val cosineAngle = dotProduct / (magnitudeBA * magnitudeBC)
-    // avoid numerical errors
-    val clippedCosine = cosineAngle.coerceIn(-1.0f, 1.0f)
-    // convert to degrees
-    val angleRadians = acos(clippedCosine)
-    val angleDegrees = Math.toDegrees(angleRadians.toDouble()).toFloat()
-    return angleDegrees
+fun angleAtVertex(a: PointF, b: PointF, c: PointF): Float {
+    val baX = a.x - b.x
+    val baY = a.y - b.y
+    val bcX = c.x - b.x
+    val bcY = c.y - b.y
+
+    val dot = baX * bcX + baY * bcY
+    val magBA = sqrt(baX * baX + baY * baY)
+    val magBC = sqrt(bcX * bcX + bcY * bcY)
+
+    val cosTheta = (dot / (magBA * magBC)).coerceIn(-1.0f, 1.0f)
+    return Math.toDegrees(acos(cosTheta).toDouble()).toFloat()
 }
+
+/**
+ * Computes the signed angle in degrees between a vector (start→end) and the X-axis.
+ * Positive = above the X-axis, Negative = below.
+ * Range: [-180°, 180°].
+ */
+fun angleWithHorizontal(start: PointF, end: PointF): Float {
+    val dx = end.x - start.x
+    val dy = end.y - start.y
+    return Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
+}
+
+/**
+ * Computes the signed angle (in degrees) between a vector (start→end) and the Y-axis.
+ * Positive = counterclockwise from +Y, Negative = clockwise.
+ * Range: [-180°, 180°].
+ */
+fun angleWithVertical(start: PointF, end: PointF): Float {
+    val dx = end.x - start.x
+    val dy = end.y - start.y
+    return Math.toDegrees(atan2(dy, dx).toDouble() - Math.PI / 2).toFloat()
+}
+
