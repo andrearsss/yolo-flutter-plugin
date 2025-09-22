@@ -950,25 +950,27 @@ class YOLOView @JvmOverloads constructor(
                             }
                         }
 
-                        // Keypoints processing and skeleton drawing
+                        // Skeleton drawing
                         paint.style = Paint.Style.STROKE
                         paint.strokeWidth = KEYPOINT_LINE_WIDTH
                         var rgbArray: FloatArray = posePalette[ORANGE] // default
 
-                        val exRes = ExerciseAnalyzer.analyzeKeypoints(keypoints, exercise, result.fps?.roundToInt())
-                        for ((limbId, color) in exRes.limbColorIndices.withIndex()) {
-                            // get coordinates
-                            val p1 = keypoints.getOrNull(skeleton[limbId].first)
-                            val p2 = keypoints.getOrNull(skeleton[limbId].second)
-                            if (p1 != null && p2 != null) {
-                                rgbArray = posePalette[color]
-                                paint.color = Color.argb(
-                                    255,
-                                    rgbArray[0].toInt().coerceIn(0,255),
-                                    rgbArray[1].toInt().coerceIn(0,255),
-                                    rgbArray[2].toInt().coerceIn(0,255)
-                                )
-                                canvas.drawLine(p1.x, p1.y, p2.x, p2.y, paint)
+                        val exRes = result.exRes
+                        if (exRes != null) {
+                            for ((limbId, color) in exRes.limbColorIndices.withIndex()) {
+                                // get coordinates
+                                val p1 = keypoints.getOrNull(skeleton[limbId].first)
+                                val p2 = keypoints.getOrNull(skeleton[limbId].second)
+                                if (p1 != null && p2 != null) {
+                                    rgbArray = posePalette[color]
+                                    paint.color = Color.argb(
+                                        255,
+                                        rgbArray[0].toInt().coerceIn(0,255),
+                                        rgbArray[1].toInt().coerceIn(0,255),
+                                        rgbArray[2].toInt().coerceIn(0,255)
+                                    )
+                                    canvas.drawLine(p1.x, p1.y, p2.x, p2.y, paint)
+                                }
                             }
                         }
                     }
@@ -1271,7 +1273,13 @@ class YOLOView @JvmOverloads constructor(
                         }
                     }
                     detection["keypoints"] = keypointsFlat
-                    Log.d(TAG, "Added keypoints data (${keypoints.xy.size} points) for detection $detectionIndex")
+                    Log.d(TAG, "Added keypoints data (${keypoints.xy.size} points) for detection $detectionIndex")              
+                }
+
+                // Add exercise feedback
+                result.exRes?.let { exRes ->
+                    detection["feedback"] = if (exRes.feedback.isNotEmpty()) exRes.feedback else ""
+                    Log.d(TAG, "⚠️ Printing feedback: ${exRes.feedback}")
                 }
                 
                 detections.add(detection)
@@ -1385,7 +1393,7 @@ class YOLOView @JvmOverloads constructor(
                 Log.d(TAG, "✅ Added original image data (${imageData.size} bytes)")
             }
         }
-        
+       
         return map
     }
     

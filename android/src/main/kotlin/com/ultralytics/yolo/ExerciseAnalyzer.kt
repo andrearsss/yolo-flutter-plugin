@@ -4,6 +4,12 @@ import kotlin.math.*
 import android.graphics.PointF
 import com.ultralytics.yolo.constants.*
 
+data class ExerciseResult(
+    val feedback: String,
+    val repDetected: Boolean,
+    val repCount: Int,
+    val limbColorIndices: IntArray,
+)
 
 object ExerciseAnalyzer {
     
@@ -18,16 +24,9 @@ object ExerciseAnalyzer {
         ORANGE, ORANGE, ORANGE, ORANGE,                                                     // arms
         GREEN, GREEN, GREEN                                                                 // clavicles and neck
     )
-    
-    data class ExerciseResult(
-        val feedback: String,
-        val repDetected: Boolean,
-        val repCount: Int,
-        val limbColorIndices: IntArray,
-    )
 
     // Main function for exercise analysis
-    fun analyzeKeypoints(keypoints: Array<PointF?>, exercise: Int, fps: Int?): ExerciseResult {
+    fun analyzeKeypoints(keypoints: Keypoints, exercise: Int, fps: Int?): ExerciseResult {
         // Skip frames for detection stability
         if (skipFrames > 0) {
             skipFrames--
@@ -35,6 +34,10 @@ object ExerciseAnalyzer {
         }
         currentExercise = exercise
         skipFrames = fps ?: 0 // 1 second
+
+        if (keypoints.xy.size == 0) {
+            return ExerciseResult("", false, repCount, limbColorIndices)
+        }
         return when (exercise) {
             SQUAT -> analyzeSquat(keypoints)
             else -> return ExerciseResult("", false, repCount, limbColorIndices)
@@ -45,20 +48,21 @@ object ExerciseAnalyzer {
  * Squat analysis: track knee joint flexion, hip joint flexion, ankle joint dorsiflexion angles and 
                     parallelism of the femur with the ground
  */
-private fun analyzeSquat(keypoints: Array<PointF?>): ExerciseResult {
-    if (keypoints.size < 4 || 
-        keypoints[LEFT_HIP] == null || 
-        keypoints[LEFT_KNEE] == null || 
-        keypoints[LEFT_ANKLE] == null ||
-        keypoints[LEFT_SHOULDER] == null) 
+private fun analyzeSquat(keypoints: Keypoints): ExerciseResult {
+    // Check if we have enough keypoints and required joints are present
+    if (keypoints.xy.size <= 4 ||
+        keypoints.conf.getOrNull(LEFT_HIP) ?: 0f < 0.2f ||
+        keypoints.conf.getOrNull(LEFT_KNEE) ?: 0f < 0.25f ||
+        keypoints.conf.getOrNull(LEFT_ANKLE) ?: 0f < 0.25f ||
+        keypoints.conf.getOrNull(LEFT_SHOULDER) ?: 0f < 0.25f) 
     {
-        return ExerciseResult("", false, repCount, limbColorIndices) // todo: handle error
+        return ExerciseResult("", false, repCount, limbColorIndices)
     }
 
-    val hip = keypoints[LEFT_HIP]!!
-    val knee = keypoints[LEFT_KNEE]!!
-    val ankle = keypoints[LEFT_ANKLE]!!
-    val shoulder = keypoints[LEFT_SHOULDER]!!
+    val hip = PointF(keypoints.xy[LEFT_HIP].first, keypoints.xy[LEFT_HIP].second)
+    val knee = PointF(keypoints.xy[LEFT_KNEE].first, keypoints.xy[LEFT_KNEE].second)
+    val ankle = PointF(keypoints.xy[LEFT_ANKLE].first, keypoints.xy[LEFT_ANKLE].second)
+    val shoulder = PointF(keypoints.xy[LEFT_SHOULDER].first, keypoints.xy[LEFT_SHOULDER].second)
 
     val kneeAnkleVertical = angleWithVertical(knee, ankle)
     val kneeAnkleHorizontal = angleWithHorizontal(knee, ankle)
@@ -115,28 +119,23 @@ fun getSquatCorrectionFeedback(invalidStates: Set<Int>): String {
     }
 
     val feedbackList = invalidStates.mapNotNull { corrections[it] }
-    
-    val feedbackStrings = feedbackList.mapIndexed { index, feedback ->
-        if (index == feedbackList.lastIndex) {
-            feedback
-        } else {
-            feedback.removeSuffix("!")
-        }
-    }
 
-    return when (feedbackStrings.size) {
-        1 -> feedbackStrings.first()
+    return when (feedbackList.size) {
+        1 -> feedbackList.first()
         2 -> {
-            val first = feedbackStrings[0]
-            val second = feedbackStrings[1]
-            "$first! Also, ${second.replaceFirstChar { it.lowercase() }}"
+            val first = feedbackList[0]
+            val second = feedbackList[1].replaceFirstChar { it.lowercase() }
+            "$first Also, $second"
         }
         else -> {
-            val joinedStrings = feedbackStrings.joinToString(", ")
-            "Check your form! Let's work on a few things: ${joinedStrings.replaceFirstChar { it.lowercase() }}"
+            val adjustedList = feedbackList.map { feedback ->
+                feedback.removeSuffix("!").replaceFirstChar { it.lowercase() }
+            }
+            "Check your form! Let's work on a few things: ${adjustedList.joinToString(", ")}!"
         }
     }
 }
+
 
 
     fun reset() {

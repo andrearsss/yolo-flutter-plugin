@@ -336,6 +336,7 @@ class YOLOPlatformView(
                         // Use the safe send method
                         val sent = customHandler.safelySend(streamData)
                         if (sent) {
+                            Log.w(TAG, "Ok to send stream data via CustomStreamHandler")
                         } else {
                             Log.w(TAG, "Failed to send stream data via CustomStreamHandler")
                             // Notify Flutter to recreate the channel

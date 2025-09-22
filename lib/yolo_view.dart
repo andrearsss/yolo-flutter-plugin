@@ -916,6 +916,7 @@ class YOLOViewState extends State<YOLOView> {
               } catch (e, s) {
                 logInfo('Error processing streaming data: $e');
                 logInfo('Stack trace for streaming error: $s');
+                logInfo('widget.onStreamingData != null');
               }
             } else {
               // Separated mode: Use individual callbacks
@@ -933,7 +934,7 @@ class YOLOViewState extends State<YOLOView> {
                       'YOLOView: Detection $i - $className (${(confidence * 100).toStringAsFixed(1)}%)',
                     );
                   }
-
+                  logInfo('_parseDetectionResults');
                   final results = _parseDetectionResults(event);
                   widget.onResult!(results);
                 } catch (e, s) {
@@ -1015,14 +1016,14 @@ class YOLOViewState extends State<YOLOView> {
 
   void _cancelResultSubscription() {
     if (_resultSubscription != null) {
-      logInfo('YOLOView: Cancelling existing result subscription for $_viewId');
-      _resultSubscription!.cancel();
-      _resultSubscription = null;
+      logInfo('YOLOView: SKIPPING Cancelling existing result subscription for $_viewId');
+      //_resultSubscription!.cancel();
+      //_resultSubscription = null;
     }
 
     // Also cancel any pending subscription timer
-    _subscriptionTimer?.cancel();
-    _subscriptionTimer = null;
+    //_subscriptionTimer?.cancel();
+    //_subscriptionTimer = null;
   }
 
   @visibleForTesting
@@ -1045,6 +1046,7 @@ class YOLOViewState extends State<YOLOView> {
         logInfo('YOLOView: Confidence: ${first["confidence"]}');
         logInfo('YOLOView: BoundingBox: ${first["boundingBox"]}');
         logInfo('YOLOView: NormalizedBox: ${first["normalizedBox"]}');
+        logInfo('YOLOView: feedback: ${first["feedback"]}');
       }
     }
 
