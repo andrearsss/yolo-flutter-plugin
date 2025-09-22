@@ -432,6 +432,115 @@ class YOLOPlatformView(
         }
     }
     
+<<<<<<< HEAD
+=======
+    /**
+     * Configure YOLOView streaming functionality based on creation parameters
+     */
+    private fun setupYOLOViewStreaming(creationParams: Map<String?, Any?>?) {
+        // Parse streaming configuration from creationParams
+        val streamingConfigParam = creationParams?.get("streamingConfig") as? Map<String, Any>
+        
+        val streamConfig = if (streamingConfigParam != null) {
+            Log.d(TAG, "Creating YOLOStreamConfig from creation params: $streamingConfigParam")
+            
+            // Convert creation params to YOLOStreamConfig
+            YOLOStreamConfig(
+                includeDetections = streamingConfigParam["includeDetections"] as? Boolean ?: true,
+                includeClassifications = streamingConfigParam["includeClassifications"] as? Boolean ?: true,
+                includeProcessingTimeMs = streamingConfigParam["includeProcessingTimeMs"] as? Boolean ?: true,
+                includeFps = streamingConfigParam["includeFps"] as? Boolean ?: true,
+                includeMasks = streamingConfigParam["includeMasks"] as? Boolean ?: true,
+                includePoses = streamingConfigParam["includePoses"] as? Boolean ?: true,
+                includeOBB = streamingConfigParam["includeOBB"] as? Boolean ?: true,
+                includeOriginalImage = streamingConfigParam["includeOriginalImage"] as? Boolean ?: false,
+                maxFPS = when (val maxFPS = streamingConfigParam["maxFPS"]) {
+                    is Int -> maxFPS
+                    is Double -> maxFPS.toInt()
+                    is String -> maxFPS.toIntOrNull()
+                    else -> null
+                },
+                throttleIntervalMs = when (val throttleMs = streamingConfigParam["throttleIntervalMs"]) {
+                    is Int -> throttleMs
+                    is Double -> throttleMs.toInt()
+                    is String -> throttleMs.toIntOrNull()
+                    else -> null
+                }
+            )
+        } else {
+            // Use default minimal configuration for optimal performance
+            Log.d(TAG, "Using default streaming config")
+            YOLOStreamConfig.DEFAULT
+        }
+        
+        // Configure YOLOView with the stream config
+        yoloView.setStreamConfig(streamConfig)
+        Log.d(TAG, "YOLOView streaming configured: $streamConfig")
+        
+        // Set up streaming callback to forward data to Flutter via event channel
+        yoloView.setStreamCallback { streamData ->
+            // Forward streaming data from YOLOView to Flutter
+            sendStreamDataToFlutter(streamData)
+        }
+    }
+    
+    /**
+     * Send stream data to Flutter via event channel
+     */
+    private fun sendStreamDataToFlutter(streamData: Map<String, Any>) {
+        try {
+            
+            // Create a runnable to ensure we're on the main thread
+            val sendResults = Runnable {
+                try {
+                    if (streamHandler is CustomStreamHandler) {
+                        val customHandler = streamHandler as CustomStreamHandler
+                        
+                        // Use the safe send method
+                        val sent = customHandler.safelySend(streamData)
+                        if (sent) {
+                            Log.w(TAG, "Ok to send stream data via CustomStreamHandler")
+                        } else {
+                            Log.w(TAG, "Failed to send stream data via CustomStreamHandler")
+                            // Notify Flutter to recreate the channel
+                            methodChannel?.invokeMethod("recreateEventChannel", null)
+                        }
+                    } else {
+                        // Use reflection to access the sink property regardless of exact type
+                        Log.d(TAG, "Attempting to access sink via reflection")
+                        val fields = streamHandler.javaClass.declaredFields
+                        Log.d(TAG, "Available fields: ${fields.joinToString { it.name }}")
+                        
+                        val sinkField = streamHandler.javaClass.getDeclaredField("sink")
+                        sinkField.isAccessible = true
+                        val sink = sinkField.get(streamHandler) as? EventChannel.EventSink
+                        
+                        if (sink != null) {
+                            sink.success(streamData)
+                        } else {
+                            Log.w(TAG, "Event sink is NOT available via reflection, skipping data")
+                            // Try alternative approach - recreate the event channel
+                            Log.d(TAG, "Requesting Flutter to recreate event channel")
+                            methodChannel?.invokeMethod("recreateEventChannel", null)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error sending stream data on main thread", e)
+                    e.printStackTrace()
+                }
+            }
+            
+            // Make sure we're on the main thread when sending events
+            val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            mainHandler.post(sendResults)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing stream data", e)
+            e.printStackTrace()
+        }
+    }
+
+>>>>>>> 730c645 (moved exercise processing into PoseEstimator, edit YOLOResult and YOLOView to include exercise feedback, temporarily skip result subscription cancelling in yolo_view.dart, edit README.md)
     override fun getView(): View {
         return yoloView
     }

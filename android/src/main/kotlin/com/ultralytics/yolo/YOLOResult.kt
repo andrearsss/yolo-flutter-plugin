@@ -17,7 +17,8 @@ data class YOLOResult(
     val speed: Double,
     val fps: Double? = null,
     val originalImage: Bitmap? = null,
-    val names: List<String>
+    val names: List<String>,
+    val exRes: ExerciseResult? = null
 )
 
 data class Box(

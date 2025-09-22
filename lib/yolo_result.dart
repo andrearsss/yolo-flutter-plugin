@@ -73,6 +73,8 @@ class YOLOResult {
   /// and ranges from 0.0 to 1.0.
   final List<double>? keypointConfidences;
 
+  final String? feedback;
+
   YOLOResult({
     required this.classIndex,
     required this.className,
@@ -82,6 +84,7 @@ class YOLOResult {
     this.mask,
     this.keypoints,
     this.keypointConfidences,
+    this.feedback,
   });
 
   /// Creates a [YOLOResult] from a map representation.
@@ -95,6 +98,7 @@ class YOLOResult {
   /// - 'normalizedBox': Map with 'left', 'top', 'right', 'bottom'
   /// - 'mask': (optional) List of List of double
   /// - 'keypoints': (optional) List of double in x,y,confidence triplets
+  /// - 'feedback': (optional) Pose textual feedback
   factory YOLOResult.fromMap(Map<dynamic, dynamic> map) {
     final classIndex = map['classIndex'] as int;
     final className = map['className'] as String;
@@ -150,6 +154,12 @@ class YOLOResult {
       }
     }
 
+    // Parse feedback if available
+    String? feedback;
+    if (map.containsKey('feedback') && map['feedback'] != null) {
+      feedback = map['feedback'];
+    }
+
     return YOLOResult(
       classIndex: classIndex,
       className: className,
@@ -159,6 +169,7 @@ class YOLOResult {
       mask: mask,
       keypoints: keypoints,
       keypointConfidences: keypointConfidences,
+      feedback: feedback,
     );
   }
 
@@ -184,6 +195,7 @@ class YOLOResult {
         'right': normalizedBox.right,
         'bottom': normalizedBox.bottom,
       },
+      'feedback': feedback,
     };
 
     if (mask != null) {

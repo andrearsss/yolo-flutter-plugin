@@ -24,7 +24,14 @@ import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import androidx.collection.ArrayMap
+import com.ultralytics.yolo.constants.*
+
+data class PoseDetection(
+    val box: Box,
+    val keypoints: Keypoints
+)
 
 class PoseEstimator(
     context: Context,
@@ -251,6 +258,10 @@ class PoseEstimator(
 //        val annotatedImage = drawPoseOnBitmap(bitmap, keypointsList, boxes)
 
         val fpsDouble: Double = if (t4 > 0) (1.0 / t4) else 0.0
+
+        // Exercise analysis
+        val exRes = if (keypointsList.isNotEmpty()) ExerciseAnalyzer.analyzeKeypoints(keypointsList.first(), SQUAT, fpsDouble.roundToInt()) else null // todo: handle exercise
+
         // Pack into YOLOResult and return
         return YOLOResult(
             origShape = com.ultralytics.yolo.Size(origWidth, origHeight),
@@ -259,7 +270,8 @@ class PoseEstimator(
 //            annotatedImage = annotatedImage,
             speed = t2,   // Measurement values in milliseconds etc. depend on BasePredictor implementation
             fps = fpsDouble,
-            names = labels
+            names = labels,
+            exRes = exRes
         )
     }
 
@@ -466,11 +478,6 @@ class PoseEstimator(
     override fun getIouThreshold(): Double {
         return iouThreshold.toDouble()
     }
-
-    private data class PoseDetection(
-        val box: Box,
-        val keypoints: Keypoints
-    )
     
     /**
      * Load labels from FlatBuffers metadata
