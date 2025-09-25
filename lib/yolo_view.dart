@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ultralytics_yolo/exercise_type.dart';
 import 'package:ultralytics_yolo/utils/logger.dart';
 import 'package:ultralytics_yolo/yolo_result.dart';
 import 'package:ultralytics_yolo/yolo_task.dart';
@@ -58,6 +59,7 @@ class YOLOViewController {
   double _confidenceThreshold = 0.5;
   double _iouThreshold = 0.45;
   int _numItemsThreshold = 30;
+  ExerciseType _selectedExercise = ExerciseType.squat;
 
   /// The current confidence threshold for detections.
   ///
@@ -77,6 +79,9 @@ class YOLOViewController {
   /// performance. Default is 30.
   int get numItemsThreshold => _numItemsThreshold;
 
+  /// Exercise type
+  ExerciseType get selectedExercise => _selectedExercise;
+
   /// Whether the controller has been initialized with a platform view.
   ///
   /// Returns true if the controller is connected to a native view and
@@ -91,6 +96,25 @@ class YOLOViewController {
     _methodChannel = methodChannel;
     _viewId = viewId;
     _applyThresholds();
+  }
+
+  Future<void> _setExercise() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot set exercise, view not yet created',
+      );
+      return;
+    }
+    try {
+      await _methodChannel!.invokeMethod('setExercise', {
+        'exercise': _selectedExercise.index
+      });
+    logInfo(
+        'YOLOViewController: Applied exercise: ${_selectedExercise.name}',
+      );
+    } catch (e) {
+      logInfo('YOLOViewController: Error applying exercise: $e');
+    }
   }
 
   Future<void> _applyThresholds() async {
@@ -313,6 +337,15 @@ class YOLOViewController {
       _numItemsThreshold = numItemsThreshold.clamp(1, 100);
     }
     return _applyThresholds();
+  }
+
+   /// Set exercise
+  Future<void> setExercise(ExerciseType? selectedExercise) async {
+    if (selectedExercise != null) {
+      debugPrint('Changing exercise to ${selectedExercise.name}');
+      _selectedExercise = selectedExercise;
+    }
+    return _setExercise();
   }
 
   /// Switches between front and back cameras.
@@ -662,6 +695,9 @@ class YOLOView extends StatefulWidget {
   /// Range: 0.0 to 1.0. Default is 0.45.
   final double iouThreshold;
 
+  /// Exercise type
+  final ExerciseType selectedExercise;
+
   const YOLOView({
     super.key,
     required this.modelPath,
@@ -676,6 +712,7 @@ class YOLOView extends StatefulWidget {
     this.streamingConfig,
     this.confidenceThreshold = 0.5,
     this.iouThreshold = 0.45,
+    this.selectedExercise = ExerciseType.squat,
   });
 
   @override
@@ -1077,6 +1114,7 @@ class YOLOViewState extends State<YOLOView> {
       'confidenceThreshold': widget.confidenceThreshold,
       'iouThreshold': widget.iouThreshold,
       'numItemsThreshold': _effectiveController.numItemsThreshold,
+      'selectedExercise': widget.selectedExercise.index,
       'viewId': _viewId,
     };
 
@@ -1203,6 +1241,12 @@ class YOLOViewState extends State<YOLOView> {
       iouThreshold: iouThreshold,
       numItemsThreshold: numItemsThreshold,
     );
+  }
+
+  /// Sets exercise type
+  ///
+  Future<void> setExercise(ExerciseType selectedExercise) {
+    return _effectiveController.setExercise(selectedExercise);
   }
 
   /// Switches between front and back camera.

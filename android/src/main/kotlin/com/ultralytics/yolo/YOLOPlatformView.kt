@@ -42,7 +42,7 @@ class YOLOPlatformView(
         // Parse model path and task from creation params
         var modelPath = creationParams?.get("modelPath") as? String ?: "yolo11n"
         val taskString = creationParams?.get("task") as? String ?: "detect"
-        val exercise = creationParams?.get("exercise") as? Int ?: 0
+        val exercise = creationParams?.get("selectedExercise") as? Int ?: 0
         // These will use defaults if not in creationParams, which is expected
         // as Dart side sets them via method channel after view creation.
         val confidenceParam = creationParams?.get("confidenceThreshold") as? Double ?: 0.5
@@ -57,7 +57,10 @@ class YOLOPlatformView(
         yoloView.setConfidenceThreshold(confidenceParam)
         yoloView.setIouThreshold(iouParam)
         // numItemsThreshold defaults within YOLOView.kt
-        
+
+        // Set exercise
+        yoloView.setExercise(exercise)
+
         // Configure YOLOView streaming functionality
         setupYOLOViewStreaming(creationParams)
 
@@ -103,7 +106,7 @@ class YOLOPlatformView(
             }
             
             // Load model with the specified path and task
-            yoloView.setModel(modelPath, task)
+            yoloView.setModel(modelPath, task, exercise = exercise)
             
             // Setup zoom callback
             yoloView.onZoomChanged = { zoomLevel ->
@@ -144,6 +147,12 @@ class YOLOPlatformView(
                     val numItems = call.argument<Int>("numItems") ?: 30
                     Log.d(TAG, "Setting numItems threshold to $numItems")
                     yoloView.setNumItemsThreshold(numItems)
+                    result.success(null)
+                }
+                "setExercise" -> {
+                    val exercise = call.argument<Int>("exercise") ?: 0
+                    Log.d(TAG, "Setting exercise to $exercise")
+                    yoloView.setExercise(exercise)
                     result.success(null)
                 }
                 "setThresholds" -> {

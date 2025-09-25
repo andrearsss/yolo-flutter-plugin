@@ -40,6 +40,7 @@ class PoseEstimator(
     private val useGpu: Boolean = true,
     private var confidenceThreshold: Float = 0.25f,   // Can be changed as needed
     private var iouThreshold: Float = 0.45f,          // Can be changed as needed
+    private var exercise: Int = SQUAT,
     private val customOptions: Interpreter.Options? = null
 ) : BasePredictor() {
 
@@ -255,7 +256,7 @@ class PoseEstimator(
         val fpsDouble: Double = if (t4 > 0) (1.0 / t4) else 0.0
 
         // Exercise analysis
-        val exRes = if (keypointsList.isNotEmpty()) ExerciseAnalyzer.analyzeKeypoints(keypointsList.first(), SQUAT, fpsDouble.roundToInt()) else null // todo: handle exercise
+        val exRes = if (keypointsList.isNotEmpty()) ExerciseAnalyzer.analyzeKeypoints(keypointsList.first(), exercise, fpsDouble.roundToInt()) else null
 
         // Pack into YOLOResult and return
         return YOLOResult(
@@ -468,6 +469,10 @@ class PoseEstimator(
 
     override fun getIouThreshold(): Double {
         return iouThreshold.toDouble()
+    }
+
+    fun setExercise(exercise: Int) {
+        this.exercise = exercise;
     }
     
     /**

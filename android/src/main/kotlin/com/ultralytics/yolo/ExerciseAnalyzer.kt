@@ -40,103 +40,101 @@ object ExerciseAnalyzer {
         }
         return when (exercise) {
             SQUAT -> analyzeSquat(keypoints)
-            else -> return ExerciseResult("", false, repCount, limbColorIndices)
+            else -> return ExerciseResult("This exercise is currently not available!", false, repCount, limbColorIndices)
         }
     }
 
-/*
- * Squat analysis: track knee joint flexion, hip joint flexion, ankle joint dorsiflexion angles and 
-                    parallelism of the femur with the ground
- */
-private fun analyzeSquat(keypoints: Keypoints): ExerciseResult {
-    // Check if we have enough keypoints and required joints are present
-    if (keypoints.xy.size <= 4 ||
-        keypoints.conf.getOrNull(LEFT_HIP) ?: 0f < 0.2f ||
-        keypoints.conf.getOrNull(LEFT_KNEE) ?: 0f < 0.25f ||
-        keypoints.conf.getOrNull(LEFT_ANKLE) ?: 0f < 0.25f ||
-        keypoints.conf.getOrNull(LEFT_SHOULDER) ?: 0f < 0.25f) 
-    {
-        return ExerciseResult("", false, repCount, limbColorIndices)
-    }
-
-    val hip = PointF(keypoints.xy[LEFT_HIP].first, keypoints.xy[LEFT_HIP].second)
-    val knee = PointF(keypoints.xy[LEFT_KNEE].first, keypoints.xy[LEFT_KNEE].second)
-    val ankle = PointF(keypoints.xy[LEFT_ANKLE].first, keypoints.xy[LEFT_ANKLE].second)
-    val shoulder = PointF(keypoints.xy[LEFT_SHOULDER].first, keypoints.xy[LEFT_SHOULDER].second)
-
-    val kneeAnkleVertical = angleWithVertical(knee, ankle)
-    val kneeAnkleHorizontal = angleWithHorizontal(knee, ankle)
-    val kneeHipHorizontal = angleWithHorizontal(knee, hip)
-    val hipShoulderHorizontal = angleWithHorizontal(hip, shoulder)
-
-    val invalidStates = mutableSetOf<Int>()
-
-    if (kneeAnkleVertical < 17f) invalidStates.add(KNEE_TOO_CLOSE_TO_VERTICAL)
-    if (kneeAnkleVertical > 29f) invalidStates.add(KNEE_TOO_FAR_FROM_VERTICAL)
-
-    if (kneeAnkleHorizontal < 126f) invalidStates.add(KNEE_TOO_FLEXED)
-    if (kneeAnkleHorizontal > 140f) invalidStates.add(KNEE_NOT_FLEXED_ENOUGH)
-
-    if (hipShoulderHorizontal < 119f) invalidStates.add(BACK_TOO_UPRIGHT)
-    if (hipShoulderHorizontal > 137f) invalidStates.add(BACK_TOO_BENT)
-
-    // Get correction feedback
-    val feedback = getSquatCorrectionFeedback(invalidStates)
-
-    // Rep detection
-    val limbId = 3
-    var repDetected = false
-    if (kneeHipHorizontal < 0f && lastRepState != DEEP_BEND) {
-        lastRepState = DEEP_BEND
-        limbColorIndices[limbId] = GREEN
-    } else if (kneeHipHorizontal >= 0f && lastRepState == DEEP_BEND) {
-        lastRepState = EXTENDED
-        limbColorIndices[limbId] = RED
-        repDetected = true
-        repCount++
-    }
-
-    return ExerciseResult(
-        feedback,
-        repDetected,
-        repCount,
-        limbColorIndices
-    )
-}
-
-fun getSquatCorrectionFeedback(invalidStates: Set<Int>): String {
-    val corrections = mapOf(
-        KNEE_TOO_CLOSE_TO_VERTICAL to "Push your knees out more!",
-        KNEE_TOO_FAR_FROM_VERTICAL to "Keep your knees in a straighter line!",
-        KNEE_TOO_FLEXED to "Don't squat so low!",
-        KNEE_NOT_FLEXED_ENOUGH to "Squat a bit deeper!",
-        BACK_TOO_UPRIGHT to "Lean forward a bit more with your back!",
-        BACK_TOO_BENT to "Keep your chest up!"
-    )
-
-    if (invalidStates.isEmpty()) {
-        return "Your form looks great! Keep it up!"
-    }
-
-    val feedbackList = invalidStates.mapNotNull { corrections[it] }
-
-    return when (feedbackList.size) {
-        1 -> feedbackList.first()
-        2 -> {
-            val first = feedbackList[0]
-            val second = feedbackList[1].replaceFirstChar { it.lowercase() }
-            "$first Also, $second"
+    /** Squat analysis: knee joint flexion, hip joint flexion, ankle joint dorsiflexion angles and 
+                        parallelism of the femur with the ground
+    */
+    private fun analyzeSquat(keypoints: Keypoints): ExerciseResult {
+        if (keypoints.xy.size <= 4 ||
+            keypoints.conf.getOrNull(LEFT_HIP) ?: 0f < 0.2f ||
+            keypoints.conf.getOrNull(LEFT_KNEE) ?: 0f < 0.25f ||
+            keypoints.conf.getOrNull(LEFT_ANKLE) ?: 0f < 0.25f ||
+            keypoints.conf.getOrNull(LEFT_SHOULDER) ?: 0f < 0.25f) 
+        {
+            return ExerciseResult("", false, repCount, limbColorIndices)
         }
-        else -> {
-            val adjustedList = feedbackList.map { feedback ->
-                feedback.removeSuffix("!").replaceFirstChar { it.lowercase() }
+
+        // Calculate joint angles
+        val hip = PointF(keypoints.xy[LEFT_HIP].first, keypoints.xy[LEFT_HIP].second)
+        val knee = PointF(keypoints.xy[LEFT_KNEE].first, keypoints.xy[LEFT_KNEE].second)
+        val ankle = PointF(keypoints.xy[LEFT_ANKLE].first, keypoints.xy[LEFT_ANKLE].second)
+        val shoulder = PointF(keypoints.xy[LEFT_SHOULDER].first, keypoints.xy[LEFT_SHOULDER].second)
+
+        val kneeAnkleVertical = angleWithVertical(knee, ankle)
+        val kneeAnkleHorizontal = angleWithHorizontal(knee, ankle)
+        val kneeHipHorizontal = angleWithHorizontal(knee, hip)
+        val hipShoulderHorizontal = angleWithHorizontal(hip, shoulder)
+
+        // Check form errors
+        val invalidStates = mutableSetOf<Int>()
+
+        if (kneeAnkleVertical < 17f) invalidStates.add(KNEE_TOO_CLOSE_TO_VERTICAL)
+        if (kneeAnkleVertical > 29f) invalidStates.add(KNEE_TOO_FAR_FROM_VERTICAL)
+
+        if (kneeAnkleHorizontal < 126f) invalidStates.add(KNEE_TOO_FLEXED)
+        if (kneeAnkleHorizontal > 140f) invalidStates.add(KNEE_NOT_FLEXED_ENOUGH)
+
+        if (hipShoulderHorizontal < 119f) invalidStates.add(BACK_TOO_UPRIGHT)
+        if (hipShoulderHorizontal > 137f) invalidStates.add(BACK_TOO_BENT)
+
+        // Get correction feedback
+        val feedback = getSquatCorrectionFeedback(invalidStates)
+
+        // Rep detection
+        val limbId = 3
+        var repDetected = false
+        if (kneeHipHorizontal < 0f && lastRepState != DEEP_BEND) {
+            lastRepState = DEEP_BEND
+            limbColorIndices[limbId] = GREEN
+        } else if (kneeHipHorizontal >= 0f && lastRepState == DEEP_BEND) {
+            lastRepState = EXTENDED
+            limbColorIndices[limbId] = RED
+            repDetected = true
+            repCount++
+        }
+
+        return ExerciseResult(
+            feedback,
+            repDetected,
+            repCount,
+            limbColorIndices
+        )
+    }
+
+    fun getSquatCorrectionFeedback(invalidStates: Set<Int>): String {
+        val corrections = mapOf(
+            KNEE_TOO_CLOSE_TO_VERTICAL to "Push your knees out more!",
+            KNEE_TOO_FAR_FROM_VERTICAL to "Keep your knees in a straighter line!",
+            KNEE_TOO_FLEXED to "Don't squat so low!",
+            KNEE_NOT_FLEXED_ENOUGH to "Squat a bit deeper!",
+            BACK_TOO_UPRIGHT to "Lean forward a bit more with your back!",
+            BACK_TOO_BENT to "Keep your chest up!"
+        )
+
+        if (invalidStates.isEmpty()) {
+            return "Your form looks great! Keep it up!"
+        }
+
+        val feedbackList = invalidStates.mapNotNull { corrections[it] }
+
+        return when (feedbackList.size) {
+            1 -> feedbackList.first()
+            2 -> {
+                val first = feedbackList[0]
+                val second = feedbackList[1].replaceFirstChar { it.lowercase() }
+                "$first Also, $second"
             }
-            "Check your form! Let's work on a few things: ${adjustedList.joinToString(", ")}!"
+            else -> {
+                val adjustedList = feedbackList.map { feedback ->
+                    feedback.removeSuffix("!").replaceFirstChar { it.lowercase() }
+                }
+                "Check your form! Let's work on a few things: ${adjustedList.joinToString(", ")}!"
+            }
         }
     }
-}
-
-
 
     fun reset() {
         skipFrames = 0

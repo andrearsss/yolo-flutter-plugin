@@ -241,7 +241,7 @@ class YOLOView @JvmOverloads constructor(
         Log.d(TAG, "YoloView init: forced TextureView usage for camera preview + overlay on top.")
     }
 
-    // region threshold setters
+    // region params setters
 
     fun setConfidenceThreshold(conf: Double) {
         confidenceThreshold = conf
@@ -269,6 +269,13 @@ class YOLOView @JvmOverloads constructor(
             // Notify zoom change
             onZoomChanged?.invoke(currentZoomRatio)
         }
+    }
+
+    // exercise set
+    fun setExercise(exercise: Int) {
+        this.exercise = exercise
+        if (this.task == YOLOTask.POSE)
+            (this.predictor as PoseEstimator).setExercise(exercise)
     }
 
     // endregion
@@ -299,7 +306,7 @@ class YOLOView @JvmOverloads constructor(
                     }
                     YOLOTask.SEGMENT -> Segmenter(context, modelPath, loadLabels(modelPath), useGpu = true)
                     YOLOTask.CLASSIFY -> Classifier(context, modelPath, loadLabels(modelPath), useGpu = true)
-                    YOLOTask.POSE -> PoseEstimator(context, modelPath, loadLabels(modelPath), useGpu = true)
+                    YOLOTask.POSE -> PoseEstimator(context, modelPath, loadLabels(modelPath), useGpu = true).apply{setExercise(exercise)}
                     YOLOTask.OBB -> ObbDetector(context, modelPath, loadLabels(modelPath), useGpu = true)
                 }
 
@@ -1279,7 +1286,7 @@ class YOLOView @JvmOverloads constructor(
                 // Add exercise feedback
                 result.exRes?.let { exRes ->
                     detection["feedback"] = if (exRes.feedback.isNotEmpty()) exRes.feedback else ""
-                    Log.d(TAG, "⚠️ Printing feedback: ${exRes.feedback}")
+                    Log.d(TAG, "Printing feedback: ${exRes.feedback}")
                 }
                 
                 detections.add(detection)
