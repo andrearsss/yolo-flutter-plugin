@@ -63,19 +63,19 @@ object ExerciseAnalyzer {
         val ankle = PointF(keypoints.xy[LEFT_ANKLE].first, keypoints.xy[LEFT_ANKLE].second)
         val shoulder = PointF(keypoints.xy[LEFT_SHOULDER].first, keypoints.xy[LEFT_SHOULDER].second)
 
-        val kneeAnkleVertical = angleWithVertical(knee, ankle)
-        val kneeAnkleHorizontal = angleWithHorizontal(knee, ankle)
+        val ankleKneeVertical = angleWithVertical(ankle, knee)
+        val ankleKneeHorizontal = angleWithHorizontal(ankle, knee)
         val kneeHipHorizontal = angleWithHorizontal(knee, hip)
         val hipShoulderHorizontal = angleWithHorizontal(hip, shoulder)
 
         // Check form errors
         val invalidStates = mutableSetOf<Int>()
 
-        if (kneeAnkleVertical < 17f) invalidStates.add(KNEE_TOO_CLOSE_TO_VERTICAL)
-        if (kneeAnkleVertical > 29f) invalidStates.add(KNEE_TOO_FAR_FROM_VERTICAL)
+        if (ankleKneeVertical < 17f) invalidStates.add(KNEE_TOO_CLOSE_TO_VERTICAL)
+        if (ankleKneeVertical > 29f) invalidStates.add(KNEE_TOO_FAR_FROM_VERTICAL)
 
-        if (kneeAnkleHorizontal < 126f) invalidStates.add(KNEE_TOO_FLEXED)
-        if (kneeAnkleHorizontal > 140f) invalidStates.add(KNEE_NOT_FLEXED_ENOUGH)
+        if (ankleKneeHorizontal < 126f) invalidStates.add(KNEE_TOO_FLEXED)
+        if (ankleKneeHorizontal > 140f) invalidStates.add(KNEE_NOT_FLEXED_ENOUGH)
 
         if (hipShoulderHorizontal < 119f) invalidStates.add(BACK_TOO_UPRIGHT)
         if (hipShoulderHorizontal > 137f) invalidStates.add(BACK_TOO_BENT)
@@ -83,13 +83,20 @@ object ExerciseAnalyzer {
         // Get correction feedback
         val feedback = getSquatCorrectionFeedback(invalidStates)
 
+        // debug
+        // Note: angles are mirrored when using front camera, positive means clockwise
+        // val feedback = "ankleKneeVertical: %.2f, ".format(ankleKneeVertical) +
+        //     "ankleKneeHorizontal: %.2f, ".format(ankleKneeHorizontal) +
+        //     "kneeHipHorizontal: %.2f, ".format(kneeHipHorizontal) +
+        //     "hipShoulderHorizontal: %.2f".format(hipShoulderHorizontal)
+
         // Rep detection
         val limbId = 3
         var repDetected = false
-        if (kneeHipHorizontal < 0f && lastRepState != DEEP_BEND) {
+        if (kneeHipHorizontal < 10f && lastRepState != DEEP_BEND) {
             lastRepState = DEEP_BEND
             limbColorIndices[limbId] = GREEN
-        } else if (kneeHipHorizontal >= 0f && lastRepState == DEEP_BEND) {
+        } else if (kneeHipHorizontal >= 10f && lastRepState == DEEP_BEND) {
             lastRepState = EXTENDED
             limbColorIndices[limbId] = RED
             repDetected = true

@@ -154,7 +154,7 @@ fun angleAtVertex(a: PointF, b: PointF, c: PointF): Float {
  */
 fun angleWithHorizontal(start: PointF, end: PointF): Float {
     val dx = end.x - start.x
-    val dy = end.y - start.y
+    val dy = start.y - end.y // y increases downwards
     return Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
 }
 
@@ -165,7 +165,7 @@ fun angleWithHorizontal(start: PointF, end: PointF): Float {
  */
 fun angleWithVertical(start: PointF, end: PointF): Float {
     val dx = end.x - start.x
-    val dy = end.y - start.y
+    val dy = start.y - end.y // y increases downwards
     return Math.toDegrees(atan2(dy, dx).toDouble() - Math.PI / 2).toFloat()
 }
 
